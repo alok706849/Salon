@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SalonPro — Smart Queue & Booking</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B1917;
+    --ink-soft:#2A2624;
+    --parchment:#F6F1E7;
+    --parchment-dim:#EDE5D4;
+    --brass:#B4884A;
+    --brass-dim:#8E6C3B;
+    --pine:#35473D;
+    --pine-soft:#4A5E51;
+    --clay:#A5432F;
+    --line:rgba(27,25,23,0.12);
+    --line-light:rgba(246,241,231,0.16);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    background:var(--parchment);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    display:flex;
+    justify-content:center;
+  }
+  .app{
+    width:100%;
+    max-width:460px;
+    min-height:100vh;
+    background:var(--parchment);
+    display:flex;
+    flex-direction:column;
+    position:relative;
+    box-shadow:0 0 40px rgba(0,0,0,0.08);
+  }
+  h1,h2,h3{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    letter-spacing:-0.01em;
+    color:var(--ink);
+  }
+
+  /* ---- LOGIN PAGE ---- */
+  .auth-view{
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    min-height:100vh;
+    background:var(--ink);
+    color:var(--parchment);
+    padding:26px 20px;
+    z-index:99;
+  }
+  .auth-view.hidden{display:none;}
+  .auth-header{text-align:center;margin-bottom:24px;}
+  .auth-badge{
+    width:56px;height:56px;border-radius:14px;
+    background:var(--brass);color:var(--ink);
+    font-family:'Fraunces',serif;font-size:26px;font-weight:700;
+    display:inline-flex;align-items:center;justify-content:center;
+    margin-bottom:12px;
+  }
+  .role-toggle{
+    display:flex;background:rgba(246,241,231,0.08);
+    border-radius:10px;padding:4px;gap:4px;margin-bottom:18px;
+  }
+  .role-toggle button{
+    flex:1;padding:9px 4px;border:none;border-radius:7px;
+    background:transparent;color:rgba(246,241,231,0.6);
+    font-size:12.5px;font-weight:600;cursor:pointer;
+  }
+  .role-toggle button.active{
+    background:var(--brass);color:var(--ink);
+  }
+  .auth-box{
+    background:rgba(246,241,231,0.05);
+    border:1px solid var(--line-light);
+    border-radius:14px;padding:20px;
+  }
+  .btn-g{
+    width:100%;border:none;border-radius:10px;
+    background:#fff;color:#1B1917;padding:12px;
+    font-weight:600;font-size:13.5px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    margin-bottom:14px;
+  }
+  .div-line{
+    display:flex;align-items:center;text-align:center;margin:12px 0;
+    color:rgba(246,241,231,0.4);font-size:11px;
+  }
+  .div-line::before, .div-line::after{content:'';flex:1;border-bottom:1px solid rgba(246,241,231,0.15);}
+  .div-line:not(:empty)::before{margin-right:8px;}
+  .div-line:not(:empty)::after{margin-left:8px;}
+  .input-dark{
+    width:100%;padding:11px 12px;border-radius:9px;
+    border:1px solid rgba(246,241,231,0.2);
+    background:rgba(246,241,231,0.08);
+    color:var(--parchment);font-size:13px;margin-bottom:12px;outline:none;
+  }
+  .input-dark::placeholder{color:rgba(246,241,231,0.4);}
+  .input-dark:focus{border-color:var(--brass);}
+
+  /* ---- LOGGED BAR ---- */
+  .logged-bar{
+    background:#12100F;color:var(--parchment);
+    padding:8px 16px;display:none;justify-content:space-between;
+    align-items:center;font-size:12px;border-bottom:1px solid rgba(246,241,231,0.1);
+  }
+  .logged-user{display:flex;align-items:center;gap:8px;}
+  .user-av{
+    width:22px;height:22px;border-radius:50%;background:var(--brass);
+    color:var(--ink);display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:11px;
+  }
+  .btn-out{
+    background:transparent;border:1px solid rgba(246,241,231,0.2);
+    color:rgba(246,241,231,0.7);padding:4px 8px;border-radius:6px;
+    font-size:11px;cursor:pointer;
+  }
+
+  /* ---- NAVIGATION ---- */
+  .mode-switch{
+    display:none;
+    background:var(--ink);
+    padding:6px;
+    gap:4px;
+    position:sticky;
+    top:0;
+    z-index:30;
+  }
+  .mode-switch button{
+    flex:1;
+    padding:9px 4px;
+    border:none;
+    background:transparent;
+    color:rgba(246,241,231,0.55);
+    font-size:12.5px;
+    font-weight:600;
+    border-radius:7px;
+    cursor:pointer;
+  }
+  .mode-switch button.active{
+    background:var(--brass);
+    color:var(--ink);
+  }
+
+  .view{display:none;flex-direction:column;flex:1;}
+  .view.active{display:flex;}
+
+  /* ---- BANNER & STATS ---- */
+  .banner{
+    background:var(--ink);
+    color:var(--parchment);
+    padding:22px 20px 26px;
+    position:relative;
+    overflow:hidden;
+  }
+  .banner::after{
+    content:"";
+    position:absolute;
+    right:-40px; top:-40px;
+    width:160px; height:160px;
+    border-radius:50%;
+    background:radial-gradient(circle, rgba(180,136,74,0.35), transparent 70%);
+  }
+  .banner .row{display:flex;justify-content:space-between;align-items:flex-start;}
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand-mark{
+    width:36px;height:36px;border-radius:9px;
+    background:var(--brass);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Fraunces',serif;font-weight:700;color:var(--ink);font-size:17px;
+  }
+  .brand-name{font-family:'Fraunces',serif;font-size:18px;font-weight:600;}
+  .brand-loc{font-size:12px;color:rgba(246,241,231,0.6);margin-top:2px;}
+  .status-pill{
+    font-size:11px;font-weight:600;
+    padding:5px 10px;border-radius:20px;
+    background:rgba(90,138,90,0.22);
+    color:#8FCB8F;
+    border:1px solid rgba(143,203,143,0.35);
+  }
+  .banner h1{font-size:26px;line-height:1.25;margin-top:18px;max-width:260px;position:relative;}
+  .wait-row{display:flex;gap:10px;margin-top:18px;position:relative;}
+  .wait-chip{
+    background:rgba(246,241,231,0.08);
+    border:1px solid var(--line-light);
+    border-radius:10px;
+    padding:10px 12px;
+    flex:1;
+  }
+  .wait-chip .num{font-family:'Fraunces',serif;font-size:20px;font-weight:600;}
+  .wait-chip .lbl{font-size:10.5px;color:rgba(246,241,231,0.55);margin-top:1px;}
+
+  .content{padding:18px 20px;flex:1;}
+  .section-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;}
+  .section-head h2{font-size:18px;}
+  .section-head a{font-size:12.5px;color:var(--brass-dim);font-weight:600;text-decoration:none;cursor:pointer;}
+
+  .cta-row{display:flex;gap:10px;margin-top:16px;}
+  .btn{
+    border:none;border-radius:10px;
+    font-family:'Inter',sans-serif;font-weight:600;font-size:13.5px;
+    padding:13px 14px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:6px;
+  }
+  .btn-primary{background:var(--brass);color:var(--ink);flex:1;}
+  .btn-outline{background:transparent;color:var(--parchment);border:1px solid var(--line-light);flex:1;}
+  .btn-block{width:100%;}
+  .btn-pine{background:var(--pine);color:var(--parchment);}
+  .btn-clay{background:var(--clay);color:var(--parchment);}
+  .btn-ghost{background:var(--parchment-dim);color:var(--ink);}
+  .btn-sm{padding:8px 12px;font-size:12.5px;border-radius:8px;}
+
+  /* CARDS & COMPONENTS */
+  .card{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:14px;
+    margin-bottom:14px;
+  }
+  .cat-scroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;margin-bottom:18px;}
+  .cat-scroll::-webkit-scrollbar{display:none;}
+  .cat-chip{
+    flex:0 0 auto;
+    padding:9px 14px;
+    border-radius:20px;
+    background:var(--parchment-dim);
+    font-size:12.5px;font-weight:600;
+    border:1px solid var(--line);
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .cat-chip.active{background:var(--pine);color:var(--parchment);border-color:var(--pine);}
+
+  .svc-card{
+    display:flex; gap:12px;
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:12px;
+    margin-bottom:10px;
+    background:#fff;
+    cursor:pointer;
+    align-items:center;
+  }
+  .svc-thumb{
+    width:68px;height:68px;border-radius:10px;flex:0 0 68px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:24px;overflow:hidden;background:#EDE5D4;
+  }
+  .svc-thumb img{width:100%;height:100%;object-fit:cover;border-radius:10px;}
+  .svc-info{flex:1;min-width:0;}
+  .svc-info .name{font-weight:600;font-size:14.5px;}
+  .svc-info .desc{font-size:12px;color:#77716A;margin-top:2px;}
+  .svc-price-row{display:flex;align-items:baseline;gap:6px;margin-top:6px;}
+  .svc-price{font-weight:700;font-size:14px;}
+  .svc-strike{font-size:11.5px;color:#A6A099;text-decoration:line-through;}
+  .svc-dur{font-size:11px;color:#8B857D;margin-left:auto;align-self:flex-end;}
+
+  /* QUEUE */
+  .token-display{
+    text-align:center;
+    background:var(--ink);
+    color:var(--parchment);
+    border-radius:16px;
+    padding:24px 18px;
+    margin-bottom:16px;
+  }
+  .token-display .tok-label{font-size:11.5px;color:rgba(246,241,231,0.55);letter-spacing:0.03em;}
+  .token-display .tok-num{font-family:'Fraunces',serif;font-size:44px;font-weight:700;color:var(--brass);margin:4px 0 10px;}
+  .qstat-grid{display:flex;gap:10px;margin-top:14px;}
+  .qstat{flex:1;background:rgba(246,241,231,0.07);border-radius:10px;padding:10px;}
+  .qstat .v{font-size:18px;font-weight:700;font-family:'Fraunces',serif;}
+  .qstat .l{font-size:10px;color:rgba(246,241,231,0.55);margin-top:1px;}
+
+  /* FIXED BOTTOM NAV */
+  .bottom-nav{
+    position:sticky;
+    bottom:0;
+    left:0;
+    right:0;
+    width:100%;
+    background:#fff;
+    border-top:1px solid var(--line);
+    display:flex;
+    padding:8px 6px 12px;
+    z-index:25;
+    box-shadow:0 -4px 12px rgba(0,0,0,0.03);
+  }
+  .nav-item{
+    flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+    background:none;border:none;cursor:pointer;color:#A6A099;
+    padding:5px 2px;
+  }
+  .nav-item.active{color:var(--pine);}
+  .nav-item .ic{font-size:18px;}
+  .nav-item .lb{font-size:10px;font-weight:600;}
+
+  .subview{display:none;flex-direction:column;flex:1;}
+  .subview.active{display:flex;}
+
+  /* TOAST */
+  .toast{
+    position:fixed;left:50%;bottom:80px;transform:translateX(-50%) translateY(8px);
+    background:var(--ink);color:var(--parchment);
+    padding:12px 18px;border-radius:10px;font-size:13px;
+    text-align:center;font-weight:500;
+    opacity:0;transition:opacity .25s, transform .25s;
+    pointer-events:none;z-index:150;white-space:nowrap;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  /* COMMON DASHBOARD */
+  .top-bar{background:var(--ink);color:var(--parchment);padding:20px 20px 16px;}
+  .top-bar h1{font-size:20px;color:var(--parchment);}
+  .top-bar .sub{font-size:12px;color:rgba(246,241,231,0.55);margin-top:3px;}
+
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;}
+  .stat-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;}
+  .stat-card .v{font-family:'Fraunces',serif;font-size:24px;font-weight:700;}
+  .stat-card .l{font-size:11.5px;color:#77716A;margin-top:2px;}
+
+  .q-row{
+    display:flex;align-items:center;gap:12px;
+    border:1px solid var(--line);border-radius:12px;
+    padding:12px;margin-bottom:9px;background:#fff;
+  }
+  .q-badge{
+    width:38px;height:38px;border-radius:9px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Fraunces',serif;font-weight:700;font-size:13px;
+    background:var(--parchment-dim);flex:0 0 38px;
+  }
+  .q-badge.serving{background:var(--brass);color:var(--ink);}
+  .q-info{flex:1;min-width:0;}
+  .q-info .n{font-weight:600;font-size:13.5px;}
+  .q-info .s{font-size:11px;color:#8B857D;}
+  .tag{
+    font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;
+    letter-spacing:0.02em;
+  }
+  .tag.waiting{background:#F0EADB;color:#8E6C3B;}
+  .tag.service{background:#DCE8DE;color:#35473D;}
+  .tag.done{background:#E4E4E1;color:#8B857D;}
+
+  .form-row{margin-bottom:12px;}
+  .form-row label{font-size:12px;font-weight:600;color:#5A544D;display:block;margin-bottom:5px;}
+  .form-row input, .form-row select{
+    width:100%;padding:10px 11px;border-radius:9px;border:1px solid var(--line);
+    font-size:13px;background:#fff;
+  }
+
+  .svc-admin-row{
+    display:flex;align-items:center;gap:10px;border:1px solid var(--line);
+    border-radius:10px;padding:10px;margin-bottom:8px;background:#fff;
+  }
+  .svc-admin-row .info{flex:1;}
+  .svc-admin-row .info .n{font-weight:600;font-size:13px;}
+  .svc-admin-row .info .p{font-size:11.5px;color:#8B857D;}
+  .icon-btn{
+    width:30px;height:30px;border-radius:7px;border:1px solid var(--line);
+    background:#fff;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;
+    text-decoration:none;color:#1B1917;
+  }
+  .btn-action-sm{
+    padding:6px 10px;border-radius:6px;font-size:11px;font-weight:600;
+    cursor:pointer;border:1px solid var(--line);background:#fff;margin-left:4px;
+  }
+  .pick-row{display:flex;gap:8px;flex-wrap:wrap;}
+  .pick-chip{
+    padding:9px 12px;border-radius:8px;
+    border:1px solid var(--line);background:#fff;
+    font-size:12px;font-weight:600;cursor:pointer;
+  }
+  .pick-chip.active{background:var(--pine);border-color:var(--pine);color:#fff;}
+  .staff-row{display:flex;gap:10px;overflow-x:auto;}
+  .staff-card{
+    flex:0 0 115px;text-align:center;border:1px solid var(--line);
+    border-radius:12px;padding:12px 8px;cursor:pointer;background:#fff;
+  }
+  .staff-card.active{border-color:var(--brass);background:#FBF6EC;}
+  .staff-avatar{
+    width:44px;height:44px;border-radius:50%;margin:0 auto 8px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Fraunces',serif;font-weight:700;color:#fff;font-size:16px;
+  }
+  .confirm-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px dashed var(--line);font-size:13px;}
+  .empty{text-align:center;padding:40px 20px;color:#8B857D;}
+
+  .img-preview-box{
+    width:80px;height:80px;border-radius:8px;border:1px dashed var(--line);
+    display:flex;align-items:center;justify-content:center;margin-top:6px;
+    overflow:hidden;background:#F6F1E7;
+  }
+  .img-preview-box img{width:100%;height:100%;object-fit:cover;}
+
+  .advance-box{
+    background:#F4EFE6;border:1.5px solid var(--brass);
+    border-radius:10px;padding:12px;margin:12px 0;
+  }
+  .phone-tag{
+    display:inline-flex;align-items:center;gap:4px;
+    font-size:11px;color:var(--brass-dim);margin-top:3px;
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- ================= AUTHENTICATION / LOGIN ================= -->
+  <div class="auth-view" id="auth-view">
+    <div class="auth-header">
+      <div class="auth-badge">S</div>
+      <h1 style="color:#fff;font-size:24px;">Welcome to SalonPro</h1>
+      <p style="font-size:12.5px;color:rgba(246,241,231,0.6);margin-top:4px;">Select role to log in</p>
+    </div>
+
+    <div class="role-toggle">
+      <button class="active" id="tab-cust" onclick="setRole('customer')">Customer</button>
+      <button id="tab-staff" onclick="setRole('staff')">Barber</button>
+      <button id="tab-admin" onclick="setRole('admin')">Admin Only</button>
+    </div>
+
+    <div class="auth-box">
+      <div id="role-info" style="font-size:12.5px;color:rgba(246,241,231,0.7);margin-bottom:14px;text-align:center;">
+        Customer login: take tokens &amp; book haircuts.
+      </div>
+
+      <button class="btn-g" onclick="loginGoogle()">
+        <svg width="18" height="18" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+        </svg>
+        Login with Google
+      </button>
+
+      <div class="div-line">or use credentials</div>
+
+      <input type="text" class="input-dark" id="in-name" placeholder="Full Name" value="Deepak Kumar">
+
+      <div id="pwd-wrap" style="display:none;">
+        <input type="password" class="input-dark" id="in-pass" placeholder="Enter Role Passcode">
+        <div style="font-size:11px;color:rgba(246,241,231,0.5);margin-top:-6px;margin-bottom:10px;" id="pwd-hint">Admin Passcode: <b>admin123</b></div>
+      </div>
+
+      <button class="btn btn-primary btn-block" onclick="loginDirect()">Continue</button>
+    </div>
+  </div>
+
+  <!-- ================= TOP SESSION BAR ================= -->
+  <div class="logged-bar" id="logged-bar">
+    <div class="logged-user">
+      <div class="user-av" id="bar-av">D</div>
+      <div><span id="bar-name">Deepak</span> · <strong id="bar-role" style="color:var(--brass);">CUSTOMER</strong></div>
+    </div>
+    <button class="btn-out" onclick="logout()">Logout</button>
+  </div>
+
+  <!-- ROLE SWITCHER -->
+  <div class="mode-switch" id="app-mode-switch">
+    <button class="active" data-m="customer" onclick="navigateMode('customer')">Customer</button>
+    <button data-m="staff" onclick="navigateMode('staff')">Staff</button>
+    <button data-m="admin" onclick="navigateMode('admin')">Admin</button>
+  </div>
+
+  <!-- ================= CUSTOMER INTERFACE ================= -->
+  <div class="view" id="view-customer">
+    <!-- Home Subview -->
+    <div class="subview active" id="cust-home">
+      <div class="banner">
+        <div class="row">
+          <div class="brand">
+            <div class="brand-mark">S</div>
+            <div>
+              <div class="brand-name" id="disp-s-name">SalonPro — Kew Gardens</div>
+              <div class="brand-loc" id="disp-s-loc">Austin Rd · City Center</div>
+            </div>
+          </div>
+          <div class="status-pill" id="salon-status">Open now</div>
+        </div>
+        <h1>Look sharp. Skip the wait.</h1>
+        <div class="wait-row">
+          <div class="wait-chip"><div class="num" id="home-wait">18 min</div><div class="lbl">Current wait</div></div>
+          <div class="wait-chip"><div class="num" id="home-queue-count">6</div><div class="lbl">In queue</div></div>
+        </div>
+        <div class="cta-row">
+          <button class="btn btn-primary" onclick="goCustSub('cust-queue')">Take a number</button>
+          <button class="btn btn-outline" onclick="goCustSub('cust-book')">Book appointment</button>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="section-head"><h2>Categories</h2></div>
+        <div class="cat-scroll" id="home-cats"></div>
+
+        <div class="section-head"><h2>Popular styles &amp; services</h2><a onclick="goCustSub('cust-services')">See all</a></div>
+        <div id="home-popular"></div>
+      </div>
+    </div>
+
+    <!-- Services Subview -->
+    <div class="subview" id="cust-services">
+      <div class="top-bar"><h1>Styles &amp; Services</h1><div class="sub">Choose hair styles, beard cuts &amp; grooming</div></div>
+      <div class="content">
+        <div class="cat-scroll" id="svc-cats"></div>
+        <div id="svc-list"></div>
+      </div>
+    </div>
+
+    <!-- Queue Subview -->
+    <div class="subview" id="cust-queue">
+      <div class="top-bar"><h1>Live Queue</h1><div class="sub">Real-time token status</div></div>
+      <div class="content" id="queue-content"></div>
+    </div>
+
+    <!-- Booking Subview -->
+    <div class="subview" id="cust-book">
+      <div class="top-bar"><h1>Book Appointment</h1><div class="sub" id="book-sub">Step 1 of 4</div></div>
+      <div class="content" id="book-content"></div>
+    </div>
+
+    <!-- Profile Subview -->
+    <div class="subview" id="cust-profile">
+      <div class="top-bar"><h1>My Profile</h1><div class="sub" id="profile-sub-lbl">Deepak Kumar · Gold Member</div></div>
+      <div class="content">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <div style="font-weight:700;font-size:15px;">142 pts</div>
+              <div style="font-size:11.5px;color:#8B857D;">Points Balance</div>
+            </div>
+            <div style="font-weight:700;font-size:15px;color:var(--brass-dim);">Tier: Gold</div>
+          </div>
+        </div>
+        <div class="section-head"><h2>My Bookings</h2></div>
+        <div id="profile-appts"></div>
+      </div>
+    </div>
+
+    <!-- FIXED BOTTOM NAV -->
+    <div class="bottom-nav" id="cust-nav">
+      <button class="nav-item active" data-sub="cust-home"><span class="ic">⌂</span><span class="lb">Home</span></button>
+      <button class="nav-item" data-sub="cust-services"><span class="ic">✂</span><span class="lb">Services</span></button>
+      <button class="nav-item" data-sub="cust-queue"><span class="ic">◷</span><span class="lb">Queue</span></button>
+      <button class="nav-item" data-sub="cust-book"><span class="ic">▤</span><span class="lb">Book</span></button>
+      <button class="nav-item" data-sub="cust-profile"><span class="ic">◍</span><span class="lb">Profile</span></button>
+    </div>
+  </div>
+
+  <!-- ================= BARBER / STAFF VIEW ================= -->
+  <div class="view" id="view-staff">
+    <div class="top-bar">
+      <h1 id="barber-greet">Hey, Arjun</h1>
+      <div class="sub">Stylist Chair · <span id="staff-avail-lbl">Available</span></div>
+    </div>
+    <div class="content">
+      <div class="stat-grid">
+        <div class="stat-card"><div class="v">9</div><div class="l">Today's clients</div></div>
+        <div class="stat-card"><div class="v">₹1,860</div><div class="l">My earnings</div></div>
+      </div>
+
+      <div class="section-head"><h2>My Status</h2></div>
+      <div class="pick-row" style="margin-bottom:18px;">
+        <div class="pick-chip active" onclick="setStaffAvail('AVAILABLE',this)">Available</div>
+        <div class="pick-chip" onclick="setStaffAvail('BUSY',this)">Busy</div>
+        <div class="pick-chip" onclick="setStaffAvail('OFFLINE',this)">Offline</div>
+      </div>
+
+      <div class="section-head"><h2>Queue — Serve Next</h2></div>
+      <div id="staff-queue-panel"></div>
+
+      <div class="section-head" style="margin-top:18px;"><h2>Upcoming Bookings</h2></div>
+      <div id="staff-schedule"></div>
+    </div>
+  </div>
+
+  <!-- ================= ADMIN EDIT PANEL ================= -->
+  <div class="view" id="view-admin">
+    <div class="top-bar">
+      <h1>Admin Control Center</h1>
+      <div class="sub">Owner Portal · All Settings, Photos &amp; Numbers Editable</div>
+    </div>
+    <div class="content">
+
+      <div class="section-head"><h2>Edit Salon Info</h2></div>
+      <div class="card">
+        <div class="form-row">
+          <label>Salon Name</label>
+          <input id="edit-s-name" value="SalonPro — Kew Gardens">
+        </div>
+        <div class="form-row">
+          <label>Address / City</label>
+          <input id="edit-s-loc" value="Austin Rd · City Center">
+        </div>
+        <div class="form-row">
+          <label>Shop Status</label>
+          <select id="edit-s-status">
+            <option value="Open now">Open now</option>
+            <option value="Break Time">Break Time</option>
+            <option value="Closed">Closed</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Display Wait Time</label>
+          <input id="edit-s-wait" value="18 min">
+        </div>
+        <button class="btn btn-pine btn-block" onclick="saveAdminSalonInfo()">Update Store Details</button>
+      </div>
+
+      <!-- EDIT SERVICES & PHOTOS -->
+      <div class="section-head" style="margin-top:16px;">
+        <h2>Manage Styles, Cuts &amp; Photos</h2>
+        <a onclick="openSvcModal()">+ Add New Style</a>
+      </div>
+      <div id="admin-services-list"></div>
+
+      <div id="svc-modal" style="display:none;margin-top:12px;">
+        <div class="card">
+          <h3 id="modal-title" style="font-size:14.5px;margin-bottom:10px;">Service / Style Form</h3>
+          <input type="hidden" id="f-id">
+          
+          <div class="form-row">
+            <label>Category</label>
+            <select id="f-cat">
+              <option value="hair">Hair Style / Cut</option>
+              <option value="beard">Beard Trim / Shape</option>
+              <option value="face">Face Glow / Facial</option>
+              <option value="massage">Head &amp; Body Massage</option>
+              <option value="packages">Full Package</option>
+            </select>
+          </div>
+
+          <div class="form-row"><label>Style / Service Name</label><input id="f-name" placeholder="e.g. Fade Cut"></div>
+          <div class="form-row"><label>Description</label><input id="f-desc" placeholder="e.g. Modern skin fade haircut"></div>
+          <div class="form-row"><label>Price (₹)</label><input id="f-price" type="number" placeholder="399"></div>
+          <div class="form-row"><label>Duration (mins)</label><input id="f-dur" type="number" placeholder="30"></div>
+
+          <div class="form-row">
+            <label>Upload Style Photo (File chunein)</label>
+            <input type="file" id="f-file" accept="image/*" onchange="handleImageFile(event)">
+          </div>
+          <div class="form-row">
+            <label>Ya Direct Photo URL Dalein</label>
+            <input id="f-img-url" placeholder="https://..." oninput="updatePreviewFromUrl(this.value)">
+          </div>
+
+          <div class="form-row">
+            <label>Photo Preview</label>
+            <div class="img-preview-box" id="f-preview-container">
+              <span style="font-size:11px;color:#8B857D;">No image</span>
+            </div>
+          </div>
+
+          <div class="cta-row">
+            <button class="btn btn-ghost" onclick="closeSvcModal()">Cancel</button>
+            <button class="btn btn-pine" onclick="saveAdminService()">Save Style &amp; Photo</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- EDIT STAFF & PHONE NUMBERS -->
+      <div class="section-head" style="margin-top:18px;">
+        <h2>Manage Staff &amp; Mobile Numbers</h2>
+        <a onclick="openStaffModal()">+ Add Staff</a>
+      </div>
+      <div id="admin-staff-list"></div>
+
+      <div id="staff-modal" style="display:none;margin-top:12px;">
+        <div class="card">
+          <h3 style="font-size:14.5px;margin-bottom:10px;" id="stf-modal-title">Add / Edit Barber</h3>
+          <input type="hidden" id="stf-edit-id">
+          <div class="form-row"><label>Barber Full Name</label><input id="stf-n" placeholder="e.g. Arjun Rao"></div>
+          <div class="form-row"><label>Mobile / Phone Number</label><input id="stf-phone" type="tel" placeholder="e.g. +91 98765 43210"></div>
+          <div class="form-row"><label>Role / Specialty</label><input id="stf-r" placeholder="Senior Barber / Stylist"></div>
+          <div class="cta-row">
+            <button class="btn btn-ghost" onclick="closeStaffModal()">Cancel</button>
+            <button class="btn btn-pine" onclick="saveAdminStaff()">Save Barber Details</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-head" style="margin-top:18px;"><h2>Queue Management</h2><a onclick="adminCallNext()">Call Next →</a></div>
+      <div id="admin-queue-list"></div>
+
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+</div>
+
+<script>
+/* ------------------ STATE & SAMPLE DATA ------------------ */
+let session = null;
+let currentRoleTab = 'customer';
+let currentUploadedPhoto = '';
+
+const CATS = [
+  {id:'hair', name:'Hair Styles', icon:'✂'},
+  {id:'beard', name:'Beard Styles', icon:'🪒'},
+  {id:'face', name:'Face Care', icon:'✨'},
+  {id:'massage', name:'Massage', icon:'💆'},
+  {id:'packages', name:'Packages', icon:'★'}
+];
+
+let services = [
+  {
+    id:1, 
+    name:'Classic Fade Haircut', 
+    cat:'hair', 
+    desc:'Precision skin fade & scissors cut', 
+    price:399, 
+    strike:499, 
+    dur:30, 
+    icon:'✂', 
+    img:'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=300&q=80'
+  },
+  {
+    id:2, 
+    name:'Royal Beard Shape & Trim', 
+    cat:'beard', 
+    desc:'Hot towel razor line-up & beard oil', 
+    price:249, 
+    strike:349, 
+    dur:20, 
+    icon:'🪒', 
+    img:'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=300&q=80'
+  },
+  {
+    id:3, 
+    name:'Ayurvedic Head & Shoulder Massage', 
+    cat:'massage', 
+    desc:'Stress relief with warm essential oils', 
+    price:499, 
+    strike:null, 
+    dur:30, 
+    icon:'💆', 
+    img:'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=300&q=80'
+  },
+  {
+    id:4, 
+    name:'Detan Glow Facial', 
+    cat:'face', 
+    desc:'Deep cleansing & instant brightening', 
+    price:799, 
+    strike:999, 
+    dur:40, 
+    icon:'✨', 
+    img:'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=300&q=80'
+  }
+];
+
+/* STAFF WITH PHONE NUMBERS */
+let staff = [
+  {id:1, name:'Arjun Rao', phone:'+91 98290 12345', role:'Master Barber', color:'#35473D', avail:'AVAILABLE'},
+  {id:2, name:'Meera Nair', phone:'+91 98290 54321', role:'Senior Stylist', color:'#B4884A', avail:'AVAILABLE'},
+  {id:3, name:'Kabir Shah', phone:'+91 94140 88990', role:'Beard Specialist', color:'#A5432F', avail:'BUSY'}
+];
+
+let queue = [
+  {token:'A-21', name:'Rohan', status:'IN SERVICE'},
+  {token:'A-22', name:'Divya', status:'WAITING'},
+  {token:'A-23', name:'Nikhil', status:'WAITING'},
+  {token:'A-24', name:'Deepak', status:'WAITING', mine:true}
+];
+let nextTokenNum = 25;
+
+let confirmedBookings = [
+  {service:'Classic Fade Haircut', staff:'Arjun Rao', when:'Tomorrow · 11:30 AM', advancePaid:40, remaining:359, status:'Confirmed'}
+];
+
+let myBooking = {service:null, staff:null, date:null, slot:null};
+
+/* GENERATE ALL TIME SLOTS (09:00 AM TO 09:00 PM EVERY 30 MINS) */
+const ALL_TIME_SLOTS = [];
+function generateTimeSlots(){
+  for(let h=9; h<12; h++){
+    ALL_TIME_SLOTS.push(`${h < 10 ? '0'+h : h}:00 AM`);
+    ALL_TIME_SLOTS.push(`${h < 10 ? '0'+h : h}:30 AM`);
+  }
+  ALL_TIME_SLOTS.push('12:00 PM');
+  ALL_TIME_SLOTS.push('12:30 PM');
+  for(let h=1; h<=4; h++){
+    ALL_TIME_SLOTS.push(`0${h}:00 PM`);
+    ALL_TIME_SLOTS.push(`0${h}:30 PM`);
+  }
+  for(let h=5; h<=8; h++){
+    ALL_TIME_SLOTS.push(`0${h}:00 PM`);
+    ALL_TIME_SLOTS.push(`0${h}:30 PM`);
+  }
+  ALL_TIME_SLOTS.push('09:00 PM');
+}
+generateTimeSlots();
+
+/* ------------------ AUTH LOGIC ------------------ */
+function setRole(role){
+  currentRoleTab = role;
+  document.getElementById('tab-cust').classList.toggle('active', role==='customer');
+  document.getElementById('tab-staff').classList.toggle('active', role==='staff');
+  document.getElementById('tab-admin').classList.toggle('active', role==='admin');
+
+  const info = document.getElementById('role-info');
+  const pwdWrap = document.getElementById('pwd-wrap');
+  const pwdHint = document.getElementById('pwd-hint');
+
+  if(role==='customer'){
+    info.textContent = 'Customer login: take tokens & book haircuts.';
+    pwdWrap.style.display = 'none';
+  } else if(role==='staff'){
+    info.textContent = 'Barber/Staff login: view active queue & mark haircuts completed.';
+    pwdWrap.style.display = 'block';
+    pwdHint.innerHTML = 'Barber Passcode: <b>barber123</b>';
+  } else {
+    info.textContent = 'Admin Only: Full access to edit salon settings, barber numbers & photos.';
+    pwdWrap.style.display = 'block';
+    pwdHint.innerHTML = 'Admin Passcode: <b>admin123</b>';
+  }
+}
+
+function loginGoogle(){
+  let name = 'Deepak Kumar';
+  if(currentRoleTab === 'admin') name = 'Admin Officer';
+  if(currentRoleTab === 'staff') name = 'Arjun Rao';
+  startSession(name, currentRoleTab);
+}
+
+function loginDirect(){
+  const name = document.getElementById('in-name').value.trim() || 'User';
+  const pwd = document.getElementById('in-pass').value;
+
+  if(currentRoleTab === 'admin' && pwd !== 'admin123'){
+    alert('Security Alert: Sirf authorized Admin login kar sakta hai!');
+    return;
+  }
+  if(currentRoleTab === 'staff' && pwd !== 'barber123'){
+    alert('Invalid Barber Passcode!');
+    return;
+  }
+  startSession(name, currentRoleTab);
+}
+
+function startSession(name, role){
+  session = { name, role };
+  document.getElementById('auth-view').classList.add('hidden');
+  document.getElementById('logged-bar').style.display = 'flex';
+  document.getElementById('app-mode-switch').style.display = 'flex';
+
+  document.getElementById('bar-name').textContent = name;
+  document.getElementById('bar-av').textContent = name.charAt(0).toUpperCase();
+  document.getElementById('bar-role').textContent = role.toUpperCase();
+
+  navigateMode(role);
+  toast(`Logged in as ${name} (${role})`);
+}
+
+function logout(){
+  session = null;
+  document.getElementById('auth-view').classList.remove('hidden');
+  document.getElementById('logged-bar').style.display = 'none';
+  document.getElementById('app-mode-switch').style.display = 'none';
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+}
+
+function navigateMode(mode){
+  if(mode === 'admin' && (!session || session.role !== 'admin')){
+    alert('Access Denied: Sirf Admin ise access kar sakta hai!');
+    return;
+  }
+  if(mode === 'staff' && (!session || (session.role !== 'staff' && session.role !== 'admin'))){
+    alert('Staff portal sirf Barbers ke liye hai.');
+    return;
+  }
+
+  document.querySelectorAll('#app-mode-switch button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.m === mode);
+  });
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-' + mode).classList.add('active');
+
+  if(mode === 'admin'){
+    renderAdminServices();
+    renderAdminStaff();
+    syncAdminQueue();
+  } else if(mode === 'staff'){
+    document.getElementById('barber-greet').textContent = 'Hey, ' + session.name;
+    renderStaffPanel();
+  } else {
+    renderHome();
+  }
+}
+
+function fmtINR(n){ return '₹'+Number(n).toLocaleString('en-IN'); }
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>t.classList.remove('show'), 2400);
+}
+
+/* ------------------ CUSTOMER FLOW ------------------ */
+function goCustSub(id){
+  document.querySelectorAll('#view-customer .subview').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('#cust-nav .nav-item').forEach(n=>n.classList.remove('active'));
+  const btn = document.querySelector(`#cust-nav .nav-item[data-sub="${id}"]`);
+  if(btn) btn.classList.add('active');
+
+  if(id==='cust-queue') renderQueue();
+  if(id==='cust-book') renderBookStep();
+  if(id==='cust-services') renderServicesView();
+  if(id==='cust-profile') renderProfile();
+}
+document.querySelectorAll('#cust-nav .nav-item').forEach(btn=>{
+  btn.addEventListener('click', ()=>goCustSub(btn.dataset.sub));
+});
+
+function renderHome(){
+  const cEl = document.getElementById('home-cats');
+  cEl.innerHTML = CATS.map(c=>`<div class="cat-chip" onclick="jumpCat('${c.id}')">${c.icon} ${c.name}</div>`).join('');
+  document.getElementById('home-popular').innerHTML = services.slice(0,4).map(svcCardHTML).join('');
+}
+function jumpCat(cId){
+  goCustSub('cust-services');
+  setTimeout(()=>filterServices(cId),0);
+}
+
+function svcCardHTML(s){
+  const imgContent = s.img ? `<img src="${s.img}" alt="${s.name}">` : `<span>${s.icon||'✂'}</span>`;
+
+  return `<div class="svc-card" onclick="bookSvc(${s.id})">
+    <div class="svc-thumb">${imgContent}</div>
+    <div class="svc-info">
+      <div class="name">${s.name}</div>
+      <div class="desc">${s.desc||'Professional salon service'}</div>
+      <div class="svc-price-row">
+        <div class="svc-price">${fmtINR(s.price)}</div>
+        ${s.strike?`<div class="svc-strike">${fmtINR(s.strike)}</div>`:''}
+        <div class="svc-dur">${s.dur} min</div>
+      </div>
+    </div>
+  </div>`;
+}
+function bookSvc(id){
+  myBooking.service = services.find(x=>x.id===id);
+  goCustSub('cust-book');
+}
+
+let activeCat = 'all';
+function renderServicesView(){
+  document.getElementById('svc-cats').innerHTML = ['<div class="cat-chip active" onclick="filterServices(\'all\')">All</div>']
+    .concat(CATS.map(c=>`<div class="cat-chip" onclick="filterServices('${c.id}')">${c.icon} ${c.name}</div>`)).join('');
+  filterServices('all');
+}
+function filterServices(catId){
+  activeCat = catId;
+  const list = catId==='all'? services : services.filter(s=>s.cat===catId);
+  document.getElementById('svc-list').innerHTML = list.map(svcCardHTML).join('') || `<div class="empty">No services found.</div>`;
+}
+
+/* ------------------ ADVANCED BOOKING FLOW ------------------ */
+let step = 1;
+
+function getTwoDaysDates(){
+  const now = new Date();
+  const d1 = new Date(now);
+  const d2 = new Date(now); d2.setDate(now.getDate() + 1);
+  const d3 = new Date(now); d3.setDate(now.getDate() + 2);
+
+  const formatD = (d, label) => {
+    const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return {
+      tag: label,
+      display: `${label} (${dayNames[d.getDay()]}, ${d.getDate()} ${monthNames[d.getMonth()]})`
+    };
+  };
+
+  return [
+    formatD(d1, 'Today'),
+    formatD(d2, 'Tomorrow'),
+    formatD(d3, 'In 2 Days')
+  ];
+}
+
+function renderBookStep(){
+  const el = document.getElementById('book-content');
+  document.getElementById('book-sub').textContent = `Step ${step} of 4`;
+  let html = '';
+
+  if(step === 1){
+    html = `<div style="font-size:13px;color:#77716A;margin-bottom:12px;">Choose a style / treatment:</div>` +
+      services.map(s=>`
+      <div class="svc-card" style="${myBooking.service && myBooking.service.id===s.id?'border-color:var(--brass);background:#FBF6EC;':''}" onclick="pickStepSvc(${s.id})">
+        <div class="svc-thumb">${s.img?`<img src="${s.img}">`:`<span>✂</span>`}</div>
+        <div class="svc-info">
+          <div class="name">${s.name}</div>
+          <div class="svc-price">${fmtINR(s.price)}</div>
+        </div>
+      </div>`).join('');
+  } else if(step === 2){
+    html = `<div style="font-size:13px;color:#77716A;margin-bottom:12px;">Choose your preferred barber:</div>
+      <div class="staff-row">` + staff.map(s=>`
+      <div class="staff-card ${myBooking.staff && myBooking.staff.id===s.id?'active':''}" onclick="pickStepStaff(${s.id})">
+        <div class="staff-avatar" style="background:${s.color}">${s.name[0]}</div>
+        <div style="font-size:12px;font-weight:600;">${s.name}</div>
+        <div style="font-size:10px;color:var(--brass-dim);margin-top:2px;">${s.phone || 'No phone'}</div>
+      </div>`).join('') + `</div>
+      <button class="btn btn-ghost btn-block" style="margin-top:14px;" onclick="pickStepStaff(null)">Any Stylist Available</button>`;
+  } else if(step === 3){
+    const allowedDates = getTwoDaysDates();
+    if(!myBooking.date) myBooking.date = allowedDates[0].display;
+    if(!myBooking.slot) myBooking.slot = ALL_TIME_SLOTS[2];
+
+    html = `
+      <div class="section-head"><h2 style="font-size:14px;">Select Date (Max 2 Days Advance Booking)</h2></div>
+      <div class="pick-row" style="margin-bottom:16px;">
+        ${allowedDates.map(d=>`
+          <div class="pick-chip ${myBooking.date===d.display?'active':''}" onclick="pickBookingDate('${d.display}')">
+            ${d.display}
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="section-head"><h2 style="font-size:14px;">Available Time Slots (${ALL_TIME_SLOTS.length} slots available)</h2></div>
+      <div style="font-size:11.5px;color:#8B857D;margin-bottom:8px;">Open from 09:00 AM to 09:00 PM:</div>
+      <div class="pick-row" style="max-height:220px;overflow-y:auto;padding:2px 0;">
+        ${ALL_TIME_SLOTS.map(t=>`
+          <div class="pick-chip ${myBooking.slot===t?'active':''}" onclick="pickBookingSlot('${t}')">
+            ${t}
+          </div>
+        `).join('')}
+      </div>
+    `;
+  } else {
+    const s = myBooking.service;
+    const total = s ? s.price : 0;
+    const advanceFee = Math.round(total * 0.10);
+    const remainingBalance = total - advanceFee;
+
+    html = `
+      <div class="card">
+        <div class="confirm-row"><span>Customer</span><b>${session ? session.name : 'Guest'}</b></div>
+        <div class="confirm-row"><span>Service</span><b>${s ? s.name : '—'}</b></div>
+        <div class="confirm-row"><span>Stylist</span><b>${myBooking.staff ? myBooking.staff.name : 'Any Stylist'}</b></div>
+        ${myBooking.staff && myBooking.staff.phone ? `<div class="confirm-row"><span>Barber Phone</span><b>${myBooking.staff.phone}</b></div>` : ''}
+        <div class="confirm-row"><span>Date</span><b>${myBooking.date}</b></div>
+        <div class="confirm-row"><span>Time Slot</span><b>${myBooking.slot}</b></div>
+        <div class="confirm-row"><span>Total Service Cost</span><b>${fmtINR(total)}</b></div>
+      </div>
+
+      <div class="advance-box">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-weight:700;font-size:14px;color:var(--pine);">10% Advance Booking Fee</div>
+            <div style="font-size:11px;color:#666;">Seat confirmation fee (Online deduct)</div>
+          </div>
+          <div style="font-size:18px;font-weight:700;color:var(--clay);">${fmtINR(advanceFee)}</div>
+        </div>
+        <div style="border-top:1px dashed var(--line);margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;font-size:12px;">
+          <span>Remaining to pay at salon:</span>
+          <b>${fmtINR(remainingBalance)}</b>
+        </div>
+      </div>
+    `;
+  }
+
+  el.innerHTML = html + `
+    <div class="cta-row" style="margin-top:18px;">
+      ${step > 1 ? `<button class="btn btn-ghost" onclick="step--;renderBookStep()">Back</button>` : ''}
+      <button class="btn btn-primary" onclick="nextStep()">${step === 4 ? `Pay Advance (${fmtINR(Math.round((myBooking.service?myBooking.service.price:0)*0.10))}) &amp; Confirm` : 'Next'}</button>
+    </div>
+  `;
+}
+
+function pickStepSvc(id){ myBooking.service = services.find(x=>x.id===id); nextStep(); }
+function pickStepStaff(id){ myBooking.staff = staff.find(x=>x.id===id)||null; nextStep(); }
+function pickBookingDate(d){ myBooking.date = d; renderBookStep(); }
+function pickBookingSlot(s){ myBooking.slot = s; renderBookStep(); }
+
+function nextStep(){
+  if(step < 4){
+    step++;
+    renderBookStep();
+  } else {
+    const total = myBooking.service.price;
+    const advance = Math.round(total * 0.10);
+    const remain = total - advance;
+
+    confirmedBookings.unshift({
+      service: myBooking.service.name,
+      staff: myBooking.staff ? `${myBooking.staff.name} (${myBooking.staff.phone||''})` : 'Assigned at salon',
+      when: `${myBooking.date} · ${myBooking.slot}`,
+      advancePaid: advance,
+      remaining: remain,
+      status: 'Advance Paid (10%)'
+    });
+
+    toast(`Booking Confirm! ${fmtINR(advance)} Advance Fee cut ho gaya.`);
+    step = 1;
+    myBooking = {service:null, staff:null, date:null, slot:null};
+    setTimeout(()=>goCustSub('cust-profile'), 600);
+  }
+}
+
+function renderProfile(){
+  document.getElementById('profile-sub-lbl').textContent = `${session ? session.name : 'Deepak Kumar'} · Gold Member`;
+  const wrap = document.getElementById('profile-appts');
+
+  wrap.innerHTML = confirmedBookings.map(b=>`
+    <div class="card" style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div style="font-weight:700;font-size:14px;">${b.service}</div>
+          <div style="font-size:12px;color:#77716A;margin-top:2px;">${b.staff} · ${b.when}</div>
+        </div>
+        <span class="tag service">Confirmed</span>
+      </div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);display:flex;justify-content:space-between;font-size:11.5px;">
+        <span style="color:var(--pine);">Advance Paid (10%): <b>${fmtINR(b.advancePaid)}</b></span>
+        <span>Pay at counter: <b>${fmtINR(b.remaining)}</b></span>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ------------------ QUEUE VIEW ------------------ */
+function renderQueue(){
+  const el = document.getElementById('queue-content');
+  const mine = queue.find(q=>q.mine);
+  if(!mine){
+    el.innerHTML = `<div class="empty"><div class="ic">◷</div>Aapke paas koi active token nahi hai.</div>
+      <button class="btn btn-primary btn-block" onclick="takeToken()">Take a Number</button>`;
+    renderQueueList(el);
+    return;
+  }
+  const idx = queue.indexOf(mine);
+  const ahead = queue.slice(0, idx).filter(q=>q.status==='WAITING'||q.status==='IN SERVICE').length;
+  el.innerHTML = `
+    <div class="token-display">
+      <div class="tok-label">YOUR TOKEN</div>
+      <div class="tok-num">${mine.token}</div>
+      <div class="qstat-grid">
+        <div class="qstat"><div class="v">${ahead}</div><div class="l">People ahead</div></div>
+        <div class="qstat"><div class="v">${ahead*8+4}m</div><div class="l">Est. Wait</div></div>
+        <div class="qstat"><div class="v">${mine.status}</div><div class="l">Status</div></div>
+      </div>
+    </div>
+    <button class="btn btn-clay btn-block" onclick="cancelToken()">Cancel My Token</button>
+  `;
+  renderQueueList(el);
+}
+function renderQueueList(wrap){
+  const div = document.createElement('div');
+  div.style.marginTop = '16px';
+  div.innerHTML = `<div class="section-head"><h2>Live Queue</h2></div>` +
+    queue.map(q=>`<div class="q-row">
+      <div class="q-badge ${q.status==='IN SERVICE'?'serving':''}">${q.token}</div>
+      <div class="q-info"><div class="n">${q.name}${q.mine?' (You)':''}</div><div class="s">${q.status}</div></div>
+      <span class="tag ${q.status==='IN SERVICE'?'service':'waiting'}">${q.status}</span>
+    </div>`).join('');
+  wrap.appendChild(div);
+}
+function takeToken(){
+  const t = 'A-' + nextTokenNum++;
+  queue.push({token:t, name:session?session.name:'Deepak', status:'WAITING', mine:true});
+  toast(`Token ${t} mil gaya!`);
+  renderQueue();
+}
+function cancelToken(){
+  queue = queue.filter(q=>!q.mine);
+  toast('Token cancel ho gaya');
+  renderQueue();
+}
+
+/* ------------------ STAFF DASHBOARD ------------------ */
+function setStaffAvail(status, el){
+  document.querySelectorAll('#view-staff .pick-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('staff-avail-lbl').textContent = status;
+  toast('Availability: ' + status);
+}
+function renderStaffPanel(){
+  document.getElementById('staff-queue-panel').innerHTML = queue.filter(q=>q.status!=='COMPLETED').map(q=>`
+    <div class="q-row">
+      <div class="q-badge ${q.status==='IN SERVICE'?'serving':''}">${q.token}</div>
+      <div class="q-info"><div class="n">${q.name}</div><div class="s">${q.status}</div></div>
+      ${q.status==='IN SERVICE'?`<button class="btn btn-sm btn-pine" onclick="barberDone('${q.token}')">Done</button>`:
+      `<button class="btn btn-sm btn-primary" onclick="barberCall('${q.token}')">Call</button>`}
+    </div>`).join('') || `<div class="empty">No queue active.</div>`;
+
+  document.getElementById('staff-schedule').innerHTML = `
+    <div class="q-row"><div class="q-badge">12</div><div class="q-info"><div class="n">Royal Beard Shape</div><div class="s">Sameer · 12:30 PM</div></div></div>
+    <div class="q-row"><div class="q-badge">02</div><div class="q-info"><div class="n">Classic Fade Cut</div><div class="s">Nikhil · 02:00 PM</div></div></div>
+  `;
+}
+function barberCall(tok){
+  const q = queue.find(x=>x.token===tok);
+  if(q) q.status = 'IN SERVICE';
+  renderStaffPanel();
+  toast(tok + ' called');
+}
+function barberDone(tok){
+  const q = queue.find(x=>x.token===tok);
+  if(q) q.status = 'COMPLETED';
+  renderStaffPanel();
+  toast(tok + ' completed');
+}
+
+/* ------------------ ADMIN CONTROLS ------------------ */
+function saveAdminSalonInfo(){
+  const n = document.getElementById('edit-s-name').value;
+  const l = document.getElementById('edit-s-loc').value;
+  const st = document.getElementById('edit-s-status').value;
+  const w = document.getElementById('edit-s-wait').value;
+
+  document.getElementById('disp-s-name').textContent = n;
+  document.getElementById('disp-s-loc').textContent = l;
+  document.getElementById('salon-status').textContent = st;
+  document.getElementById('home-wait').textContent = w;
+
+  toast('Salon details update ho gaye!');
+}
+
+function handleImageFile(event){
+  const file = event.target.files[0];
+  if(file){
+    const reader = new FileReader();
+    reader.onload = function(e){
+      currentUploadedPhoto = e.target.result;
+      document.getElementById('f-img-url').value = '';
+      showPreview(currentUploadedPhoto);
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+function updatePreviewFromUrl(url){
+  currentUploadedPhoto = url.trim();
+  showPreview(currentUploadedPhoto);
+}
+
+function showPreview(src){
+  const box = document.getElementById('f-preview-container');
+  if(src){
+    box.innerHTML = `<img src="${src}" alt="Preview">`;
+  } else {
+    box.innerHTML = `<span style="font-size:11px;color:#8B857D;">No image</span>`;
+  }
+}
+
+function renderAdminServices(){
+  document.getElementById('admin-services-list').innerHTML = services.map(s=>`
+    <div class="svc-admin-row">
+      <div class="svc-thumb" style="width:44px;height:44px;flex:0 0 44px;border-radius:8px;">
+        ${s.img ? `<img src="${s.img}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">` : `<span style="font-size:16px;">${s.icon||'✂'}</span>`}
+      </div>
+      <div class="info">
+        <div class="n">${s.name} <span style="font-size:11px;color:#8B857D;">(${s.cat})</span></div>
+        <div class="p">${fmtINR(s.price)} · ${s.dur}m</div>
+      </div>
+      <button class="icon-btn" onclick="editSvc(${s.id})">✎</button>
+      <button class="icon-btn" onclick="delSvc(${s.id})" style="color:red;">✕</button>
+    </div>`).join('');
+}
+
+function openSvcModal(){
+  document.getElementById('f-id').value = '';
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-desc').value = '';
+  document.getElementById('f-price').value = '';
+  document.getElementById('f-dur').value = '';
+  document.getElementById('f-img-url').value = '';
+  document.getElementById('f-file').value = '';
+  currentUploadedPhoto = '';
+  showPreview('');
+  document.getElementById('modal-title').textContent = 'Add Style / Service & Photo';
+  document.getElementById('svc-modal').style.display = 'block';
+}
+
+function editSvc(id){
+  const s = services.find(x=>x.id===id);
+  if(!s) return;
+  document.getElementById('f-id').value = s.id;
+  document.getElementById('f-name').value = s.name;
+  document.getElementById('f-desc').value = s.desc || '';
+  document.getElementById('f-cat').value = s.cat;
+  document.getElementById('f-price').value = s.price;
+  document.getElementById('f-dur').value = s.dur;
+  document.getElementById('f-img-url').value = s.img || '';
+  currentUploadedPhoto = s.img || '';
+  showPreview(currentUploadedPhoto);
+  document.getElementById('modal-title').textContent = 'Edit Style / Service & Photo';
+  document.getElementById('svc-modal').style.display = 'block';
+}
+
+function closeSvcModal(){ document.getElementById('svc-modal').style.display = 'none'; }
+
+function saveAdminService(){
+  const eid = document.getElementById('f-id').value;
+  const name = document.getElementById('f-name').value.trim();
+  const desc = document.getElementById('f-desc').value.trim();
+  const cat = document.getElementById('f-cat').value;
+  const price = parseInt(document.getElementById('f-price').value)||0;
+  const dur = parseInt(document.getElementById('f-dur').value)||0;
+
+  if(!name || !price){ toast('Name aur price zaroori hai'); return; }
+
+  const finalImg = currentUploadedPhoto || 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=300';
+
+  if(eid){
+    const item = services.find(x=>x.id==eid);
+    if(item){
+      item.name = name; item.desc = desc; item.cat = cat; item.price = price; item.dur = dur; item.img = finalImg;
+    }
+  } else {
+    services.push({
+      id:Date.now(), name, cat, desc: desc || 'Salon professional service', price, strike:null, dur, icon:'✂', img: finalImg
+    });
+  }
+
+  closeSvcModal();
+  renderAdminServices();
+  renderHome();
+  toast('Style and photo saved!');
+}
+
+function delSvc(id){
+  if(confirm('Is style/service ko delete karein?')){
+    services = services.filter(x=>x.id!==id);
+    renderAdminServices();
+    renderHome();
+    toast('Style deleted');
+  }
+}
+
+/* STAFF & NUMBER CRUD */
+function renderAdminStaff(){
+  document.getElementById('admin-staff-list').innerHTML = staff.map(s=>`
+    <div class="q-row">
+      <div class="q-badge" style="background:${s.color};color:#fff;">${s.name[0]}</div>
+      <div class="q-info">
+        <div class="n">${s.name}</div>
+        <div class="s">${s.role}</div>
+        <div class="phone-tag">📞 <a href="tel:${s.phone}" style="color:inherit;text-decoration:none;font-weight:600;">${s.phone || 'No phone added'}</a></div>
+      </div>
+      <button class="icon-btn" title="Edit Barber" onclick="editStaff(${s.id})">✎</button>
+      <button class="icon-btn" title="Delete Barber" onclick="delStaff(${s.id})" style="color:red;">✕</button>
+    </div>`).join('');
+}
+
+function openStaffModal(){
+  document.getElementById('stf-edit-id').value = '';
+  document.getElementById('stf-n').value = '';
+  document.getElementById('stf-phone').value = '';
+  document.getElementById('stf-r').value = '';
+  document.getElementById('stf-modal-title').textContent = 'Add New Barber';
+  document.getElementById('staff-modal').style.display='block';
+}
+
+function editStaff(id){
+  const st = staff.find(x=>x.id===id);
+  if(!st) return;
+  document.getElementById('stf-edit-id').value = st.id;
+  document.getElementById('stf-n').value = st.name;
+  document.getElementById('stf-phone').value = st.phone || '';
+  document.getElementById('stf-r').value = st.role || '';
+  document.getElementById('stf-modal-title').textContent = 'Edit Barber & Phone';
+  document.getElementById('staff-modal').style.display='block';
+}
+
+function closeStaffModal(){ document.getElementById('staff-modal').style.display='none'; }
+
+function saveAdminStaff(){
+  const editId = document.getElementById('stf-edit-id').value;
+  const name = document.getElementById('stf-n').value.trim();
+  const phone = document.getElementById('stf-phone').value.trim();
+  const role = document.getElementById('stf-r').value.trim() || 'Barber';
+
+  if(!name){ toast('Barber ka naam likhein'); return; }
+
+  if(editId){
+    const st = staff.find(x=>x.id == editId);
+    if(st){
+      st.name = name;
+      st.phone = phone;
+      st.role = role;
+      toast('Barber number & info updated!');
+    }
+  } else {
+    staff.push({
+      id:Date.now(),
+      name,
+      phone: phone || '+91 ----------',
+      role,
+      color:'#35473D',
+      avail:'AVAILABLE'
+    });
+    toast('Naya Barber aur number add ho gaya!');
+  }
+
+  closeStaffModal();
+  renderAdminStaff();
+}
+
+function delStaff(id){
+  if(confirm('Is barber ko remove karna chahte hain?')){
+    staff = staff.filter(x=>x.id!==id);
+    renderAdminStaff();
+    toast('Barber removed');
+  }
+}
+
+/* Queue control */
+function syncAdminQueue(){
+  document.getElementById('admin-queue-list').innerHTML = queue.map(q=>`
+    <div class="q-row">
+      <div class="q-badge ${q.status==='IN SERVICE'?'serving':''}">${q.token}</div>
+      <div class="q-info"><div class="n">${q.name}</div><div class="s">${q.status}</div></div>
+      <button class="btn-action-sm" onclick="setQStatus('${q.token}','IN SERVICE')">Serve</button>
+      <button class="btn-action-sm" onclick="setQStatus('${q.token}','COMPLETED')">Done</button>
+    </div>`).join('');
+}
+function setQStatus(tok, st){
+  const q = queue.find(x=>x.token===tok);
+  if(q){ q.status = st; syncAdminQueue(); }
+}
+function adminCallNext(){
+  const w = queue.find(x=>x.status==='WAITING');
+  if(w){ w.status = 'IN SERVICE'; syncAdminQueue(); toast(w.token + ' in service'); }
+  else toast('Queue khali hai');
+}
+
+/* Initialize defaults */
+renderHome();
+</script>
+</body>
+</html>
