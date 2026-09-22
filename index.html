@@ -6,9 +6,11 @@
 <title>SalonPro — Smart Queue & Booking</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <!-- Firebase Libraries (Internet se judne ke liye zaroori tools) -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<!-- Stable Firebase Scripts compatible with direct browser run -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
 <style>
   :root{
     --ink:#1B1917;
@@ -406,8 +408,13 @@
 
   .advance-box{
     background:#F4EFE6;border:1.5px solid var(--brass);
-    border-radius:10px;padding:12px;margin:12px 0;
+    border-radius:10px;padding:12px;margin:12px 0;text-align:center;
   }
+  .qr-code-display{
+    background:#fff;padding:8px;border-radius:8px;border:1px solid var(--line);
+    display:inline-block;margin:10px 0;
+  }
+  .qr-code-display img{width:150px;height:150px;display:block;}
   .phone-tag{
     display:inline-flex;align-items:center;gap:4px;
     font-size:11px;color:var(--brass-dim);margin-top:3px;
@@ -450,9 +457,9 @@
 
       <input type="text" class="input-dark" id="in-name" placeholder="Full Name" value="Deepak Kumar">
 
+      <!-- Passcode input WITHOUT ANY HINT TEXT -->
       <div id="pwd-wrap" style="display:none;">
-        <input type="password" class="input-dark" id="in-pass" placeholder="Enter Role Passcode">
-        <div style="font-size:11px;color:rgba(246,241,231,0.5);margin-top:-6px;margin-bottom:10px;" id="pwd-hint">Admin Passcode: <b>admin123</b></div>
+        <input type="password" class="input-dark" id="in-pass" placeholder="Enter Secret Passcode">
       </div>
 
       <button class="btn btn-primary btn-block" onclick="loginDirect()">Continue</button>
@@ -590,11 +597,31 @@
   <div class="view" id="view-admin">
     <div class="top-bar">
       <h1>Admin Control Center</h1>
-      <div class="sub">Owner Portal · All Settings, Photos &amp; Numbers Editable</div>
+      <div class="sub">Owner Portal · All Settings, Photos &amp; UPI QR Editable</div>
     </div>
     <div class="content">
 
-      <div class="section-head"><h2>Edit Salon Info</h2></div>
+      <!-- UPI QR CONFIG -->
+      <div class="section-head"><h2>Salon UPI &amp; Bank Settings (Advance 10%)</h2></div>
+      <div class="card">
+        <div class="form-row">
+          <label>Your UPI ID (GPay / PhonePe / Paytm)</label>
+          <input id="cfg-upi-id" value="salonpro@upi" placeholder="e.g. yourname@okaxis">
+        </div>
+        <div class="form-row">
+          <label>Payee Name</label>
+          <input id="cfg-upi-name" value="SalonPro Kew Gardens">
+        </div>
+        <button class="btn btn-pine btn-block" onclick="saveAdminUpiInfo()">Save UPI QR Settings</button>
+      </div>
+
+      <!-- BOOKINGS PENDING PAYMENT VERIFICATION -->
+      <div class="section-head" style="margin-top:16px;">
+        <h2>Verify 10% Advance Bookings</h2>
+      </div>
+      <div id="admin-verify-bookings"></div>
+
+      <div class="section-head" style="margin-top:18px;"><h2>Edit Salon Info</h2></div>
       <div class="card">
         <div class="form-row">
           <label>Salon Name</label>
@@ -702,32 +729,42 @@
 </div>
 
 <script>
-/* ------------------ STATE & SAMPLE DATA ------------------ */
-  // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+/* ------------------ FIREBASE REALTIME SETUP WITH AAPKI KEYS ------------------ */
+let rtdb = null;
+try {
+  const firebaseConfig = {
+    apiKey: "AIzaSyCfv0AC-Fi2AMGbvohP798hF4NQ2at4x2E",
+    authDomain: "salon-ceac9.firebaseapp.com",
+    databaseURL: "https://salon-ceac9-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "salon-ceac9",
+    storageBucket: "salon-ceac9.firebasestorage.app",
+    messagingSenderId: "375531013882",
+    appId: "1:375531013882:web:32128a7effca7a3422ab43",
+    measurementId: "G-9DDVXG18LQ"
+  };
+  
+  if (typeof firebase !== "undefined") {
+    firebase.initializeApp(firebaseConfig);
+    rtdb = firebase.database();
+  }
+} catch(e) {
+  console.log("Firebase fallback activated");
+}
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyCfv0AC-Fi2AMGbvohP798hF4NQ2at4x2E",
-  authDomain: "salon-ceac9.firebaseapp.com",
-  databaseURL: "https://salon-ceac9-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "salon-ceac9",
-  storageBucket: "salon-ceac9.firebasestorage.app",
-  messagingSenderId: "375531013882",
-  appId: "1:375531013882:web:32128a7effca7a3422ab43",
-  measurementId: "G-9DDVXG18LQ"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+/* ------------------ LOCALSTORAGE & STATE ------------------ */
 let session = null;
 let currentRoleTab = 'customer';
 let currentUploadedPhoto = '';
+
+function loadData(k, fallback){
+  try {
+    const d = localStorage.getItem(k);
+    return d ? JSON.parse(d) : fallback;
+  } catch(e){ return fallback; }
+}
+function saveData(k, v){
+  try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){}
+}
 
 const CATS = [
   {id:'hair', name:'Hair Styles', icon:'✂'},
@@ -737,7 +774,7 @@ const CATS = [
   {id:'packages', name:'Packages', icon:'★'}
 ];
 
-let services = [
+let services = loadData('sp_services', [
   {
     id:1, 
     name:'Classic Fade Haircut', 
@@ -782,30 +819,34 @@ let services = [
     icon:'✨', 
     img:'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=300&q=80'
   }
-];
+]);
 
-/* STAFF WITH PHONE NUMBERS */
-let staff = [
+let staff = loadData('sp_staff', [
   {id:1, name:'Arjun Rao', phone:'+91 98290 12345', role:'Master Barber', color:'#35473D', avail:'AVAILABLE'},
   {id:2, name:'Meera Nair', phone:'+91 98290 54321', role:'Senior Stylist', color:'#B4884A', avail:'AVAILABLE'},
   {id:3, name:'Kabir Shah', phone:'+91 94140 88990', role:'Beard Specialist', color:'#A5432F', avail:'BUSY'}
-];
+]);
 
-let queue = [
+let queue = loadData('sp_queue', [
   {token:'A-21', name:'Rohan', status:'IN SERVICE'},
   {token:'A-22', name:'Divya', status:'WAITING'},
   {token:'A-23', name:'Nikhil', status:'WAITING'},
   {token:'A-24', name:'Deepak', status:'WAITING', mine:true}
-];
+]);
+
+let upiConfig = loadData('sp_upi', {
+  upiId: 'salonpro@upi',
+  name: 'SalonPro Kew Gardens'
+});
+
+let confirmedBookings = loadData('sp_bookings', [
+  {id:101, customer:'Deepak', service:'Classic Fade Haircut', staff:'Arjun Rao', when:'Tomorrow · 11:30 AM', total:399, advancePaid:40, remaining:359, utr:'123456789012', status:'Confirmed'}
+]);
+
 let nextTokenNum = 25;
-
-let confirmedBookings = [
-  {service:'Classic Fade Haircut', staff:'Arjun Rao', when:'Tomorrow · 11:30 AM', advancePaid:40, remaining:359, status:'Confirmed'}
-];
-
 let myBooking = {service:null, staff:null, date:null, slot:null};
 
-/* GENERATE ALL TIME SLOTS (09:00 AM TO 09:00 PM EVERY 30 MINS) */
+/* TIME SLOTS (09:00 AM TO 09:00 PM EVERY 30 MINS) */
 const ALL_TIME_SLOTS = [];
 function generateTimeSlots(){
   for(let h=9; h<12; h++){
@@ -835,19 +876,16 @@ function setRole(role){
 
   const info = document.getElementById('role-info');
   const pwdWrap = document.getElementById('pwd-wrap');
-  const pwdHint = document.getElementById('pwd-hint');
 
   if(role==='customer'){
     info.textContent = 'Customer login: take tokens & book haircuts.';
     pwdWrap.style.display = 'none';
   } else if(role==='staff'){
-    info.textContent = 'Barber/Staff login: view active queue & mark haircuts completed.';
+    info.textContent = 'Barber/Staff login: enter staff passcode.';
     pwdWrap.style.display = 'block';
-    pwdHint.innerHTML = 'Barber Passcode: <b>barber123</b>';
   } else {
-    info.textContent = 'Admin Only: Full access to edit salon settings, barber numbers & photos.';
+    info.textContent = 'Admin Only: authorized salon management access.';
     pwdWrap.style.display = 'block';
-    pwdHint.innerHTML = 'Admin Passcode: <b>admin123</b>';
   }
 }
 
@@ -915,6 +953,7 @@ function navigateMode(mode){
     renderAdminServices();
     renderAdminStaff();
     syncAdminQueue();
+    renderAdminVerifications();
   } else if(mode === 'staff'){
     document.getElementById('barber-greet').textContent = 'Hey, ' + session.name;
     renderStaffPanel();
@@ -992,7 +1031,7 @@ function filterServices(catId){
   document.getElementById('svc-list').innerHTML = list.map(svcCardHTML).join('') || `<div class="empty">No services found.</div>`;
 }
 
-/* ------------------ ADVANCED BOOKING FLOW ------------------ */
+/* ------------------ BOOKING FLOW ------------------ */
 let step = 1;
 
 function getTwoDaysDates(){
@@ -1056,8 +1095,8 @@ function renderBookStep(){
         `).join('')}
       </div>
 
-      <div class="section-head"><h2 style="font-size:14px;">Available Time Slots (${ALL_TIME_SLOTS.length} slots available)</h2></div>
-      <div style="font-size:11.5px;color:#8B857D;margin-bottom:8px;">Open from 09:00 AM to 09:00 PM:</div>
+      <div class="section-head"><h2 style="font-size:14px;">Available Time Slots (${ALL_TIME_SLOTS.length} slots)</h2></div>
+      <div style="font-size:11.5px;color:#8B857D;margin-bottom:8px;">Open 09:00 AM to 09:00 PM:</div>
       <div class="pick-row" style="max-height:220px;overflow-y:auto;padding:2px 0;">
         ${ALL_TIME_SLOTS.map(t=>`
           <div class="pick-chip ${myBooking.slot===t?'active':''}" onclick="pickBookingSlot('${t}')">
@@ -1072,29 +1111,33 @@ function renderBookStep(){
     const advanceFee = Math.round(total * 0.10);
     const remainingBalance = total - advanceFee;
 
+    const upiLink = `upi://pay?pa=${encodeURIComponent(upiConfig.upiId)}&pn=${encodeURIComponent(upiConfig.name)}&am=${advanceFee}&cu=INR&tn=SalonPro_Booking_Advance`;
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiLink)}`;
+
     html = `
       <div class="card">
-        <div class="confirm-row"><span>Customer</span><b>${session ? session.name : 'Guest'}</b></div>
         <div class="confirm-row"><span>Service</span><b>${s ? s.name : '—'}</b></div>
         <div class="confirm-row"><span>Stylist</span><b>${myBooking.staff ? myBooking.staff.name : 'Any Stylist'}</b></div>
-        ${myBooking.staff && myBooking.staff.phone ? `<div class="confirm-row"><span>Barber Phone</span><b>${myBooking.staff.phone}</b></div>` : ''}
-        <div class="confirm-row"><span>Date</span><b>${myBooking.date}</b></div>
-        <div class="confirm-row"><span>Time Slot</span><b>${myBooking.slot}</b></div>
-        <div class="confirm-row"><span>Total Service Cost</span><b>${fmtINR(total)}</b></div>
+        <div class="confirm-row"><span>Slot</span><b>${myBooking.date} · ${myBooking.slot}</b></div>
+        <div class="confirm-row"><span>Total Cost</span><b>${fmtINR(total)}</b></div>
       </div>
 
       <div class="advance-box">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div>
-            <div style="font-weight:700;font-size:14px;color:var(--pine);">10% Advance Booking Fee</div>
-            <div style="font-size:11px;color:#666;">Seat confirmation fee (Online deduct)</div>
-          </div>
-          <div style="font-size:18px;font-weight:700;color:var(--clay);">${fmtINR(advanceFee)}</div>
+        <div style="font-weight:700;font-size:14px;color:var(--pine);">Scan QR &amp; Pay 10% Advance</div>
+        <div style="font-size:11px;color:#666;margin-top:2px;">GPay / PhonePe / Paytm se pay karein:</div>
+        
+        <div class="qr-code-display">
+          <img src="${qrCodeUrl}" alt="Scan QR">
         </div>
-        <div style="border-top:1px dashed var(--line);margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;font-size:12px;">
-          <span>Remaining to pay at salon:</span>
-          <b>${fmtINR(remainingBalance)}</b>
-        </div>
+        
+        <div style="font-size:17px;font-weight:700;color:var(--clay);">${fmtINR(advanceFee)}</div>
+        <div style="font-size:11px;color:#77716A;margin-top:2px;">UPI: <b>${upiConfig.upiId}</b></div>
+        <div style="font-size:11.5px;color:#35473D;margin-top:4px;">Remaining ₹${remainingBalance} salon counter par pay karein.</div>
+      </div>
+
+      <div class="card">
+        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:6px;">Payment UTR / Ref Number enter karein:</label>
+        <input id="pay-utr" class="input-dark" style="background:#fff;color:#1B1917;border-color:var(--line);" placeholder="12-digit UTR (e.g. 4231xxxxxxxx)">
       </div>
     `;
   }
@@ -1102,7 +1145,7 @@ function renderBookStep(){
   el.innerHTML = html + `
     <div class="cta-row" style="margin-top:18px;">
       ${step > 1 ? `<button class="btn btn-ghost" onclick="step--;renderBookStep()">Back</button>` : ''}
-      <button class="btn btn-primary" onclick="nextStep()">${step === 4 ? `Pay Advance (${fmtINR(Math.round((myBooking.service?myBooking.service.price:0)*0.10))}) &amp; Confirm` : 'Next'}</button>
+      <button class="btn btn-primary" onclick="nextStep()">${step === 4 ? `Verify &amp; Submit Booking` : 'Next'}</button>
     </div>
   `;
 }
@@ -1117,20 +1160,38 @@ function nextStep(){
     step++;
     renderBookStep();
   } else {
+    const utr = (document.getElementById('pay-utr').value || '').trim();
+    if(!utr || utr.length < 8){
+      alert('Kripya payment karne ke baad sahi 12-digit UTR number dalein!');
+      return;
+    }
+
     const total = myBooking.service.price;
     const advance = Math.round(total * 0.10);
     const remain = total - advance;
 
-    confirmedBookings.unshift({
+    const newBooking = {
+      id: Date.now(),
+      customer: session ? session.name : 'Customer',
       service: myBooking.service.name,
-      staff: myBooking.staff ? `${myBooking.staff.name} (${myBooking.staff.phone||''})` : 'Assigned at salon',
+      staff: myBooking.staff ? myBooking.staff.name : 'Any Stylist',
       when: `${myBooking.date} · ${myBooking.slot}`,
+      total: total,
       advancePaid: advance,
       remaining: remain,
-      status: 'Advance Paid (10%)'
-    });
+      utr: utr,
+      status: 'Pending Verification'
+    };
 
-    toast(`Booking Confirm! ${fmtINR(advance)} Advance Fee cut ho gaya.`);
+    confirmedBookings.unshift(newBooking);
+    saveData('sp_bookings', confirmedBookings);
+
+    // Save to Firebase Realtime Database
+    if (rtdb) {
+      rtdb.ref('bookings/' + newBooking.id).set(newBooking);
+    }
+
+    toast(`Booking Request Sent! Admin verify karke approve karega.`);
     step = 1;
     myBooking = {service:null, staff:null, date:null, slot:null};
     setTimeout(()=>goCustSub('cust-profile'), 600);
@@ -1147,15 +1208,16 @@ function renderProfile(){
         <div>
           <div style="font-weight:700;font-size:14px;">${b.service}</div>
           <div style="font-size:12px;color:#77716A;margin-top:2px;">${b.staff} · ${b.when}</div>
+          <div style="font-size:11px;color:#8B857D;margin-top:2px;">UTR: ${b.utr}</div>
         </div>
-        <span class="tag service">Confirmed</span>
+        <span class="tag ${b.status==='Confirmed'?'service':'waiting'}">${b.status}</span>
       </div>
       <div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);display:flex;justify-content:space-between;font-size:11.5px;">
-        <span style="color:var(--pine);">Advance Paid (10%): <b>${fmtINR(b.advancePaid)}</b></span>
-        <span>Pay at counter: <b>${fmtINR(b.remaining)}</b></span>
+        <span style="color:var(--pine);">Advance (10%): <b>${fmtINR(b.advancePaid)}</b></span>
+        <span>Balance to pay: <b>${fmtINR(b.remaining)}</b></span>
       </div>
     </div>
-  `).join('');
+  `).join('') || `<div class="empty">Koi booking nahi mili.</div>`;
 }
 
 /* ------------------ QUEUE VIEW ------------------ */
@@ -1197,12 +1259,16 @@ function renderQueueList(wrap){
 }
 function takeToken(){
   const t = 'A-' + nextTokenNum++;
-  queue.push({token:t, name:session?session.name:'Deepak', status:'WAITING', mine:true});
+  const item = {token:t, name:session?session.name:'Deepak', status:'WAITING', mine:true};
+  queue.push(item);
+  saveData('sp_queue', queue);
+  if(rtdb) rtdb.ref('queue/' + t).set(item);
   toast(`Token ${t} mil gaya!`);
   renderQueue();
 }
 function cancelToken(){
   queue = queue.filter(q=>!q.mine);
+  saveData('sp_queue', queue);
   toast('Token cancel ho gaya');
   renderQueue();
 }
@@ -1231,17 +1297,74 @@ function renderStaffPanel(){
 function barberCall(tok){
   const q = queue.find(x=>x.token===tok);
   if(q) q.status = 'IN SERVICE';
+  saveData('sp_queue', queue);
   renderStaffPanel();
   toast(tok + ' called');
 }
 function barberDone(tok){
   const q = queue.find(x=>x.token===tok);
   if(q) q.status = 'COMPLETED';
+  saveData('sp_queue', queue);
   renderStaffPanel();
   toast(tok + ' completed');
 }
 
 /* ------------------ ADMIN CONTROLS ------------------ */
+function saveAdminUpiInfo(){
+  upiConfig.upiId = document.getElementById('cfg-upi-id').value.trim() || 'salonpro@upi';
+  upiConfig.name = document.getElementById('cfg-upi-name').value.trim() || 'SalonPro';
+  saveData('sp_upi', upiConfig);
+  toast('Salon UPI QR settings saved!');
+}
+
+function renderAdminVerifications(){
+  const wrap = document.getElementById('admin-verify-bookings');
+  const pending = confirmedBookings.filter(b=>b.status==='Pending Verification');
+  
+  if(!pending.length){
+    wrap.innerHTML = `<div class="card" style="font-size:12.5px;color:#8B857D;text-align:center;">Koi pending UTR payment verification nahi hai.</div>`;
+    return;
+  }
+
+  wrap.innerHTML = pending.map(b=>`
+    <div class="card" style="border-left:4px solid var(--brass);">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div style="font-weight:700;font-size:14px;">${b.customer} — ${b.service}</div>
+          <div style="font-size:12px;color:#77716A;margin-top:2px;">Slot: ${b.when}</div>
+          <div style="font-size:12px;color:var(--clay);font-weight:700;margin-top:4px;">UTR Ref: ${b.utr}</div>
+          <div style="font-size:11.5px;color:#35473D;margin-top:2px;">10% Advance Amount: <b>${fmtINR(b.advancePaid)}</b></div>
+        </div>
+      </div>
+      <div class="cta-row" style="margin-top:10px;">
+        <button class="btn btn-pine btn-sm" onclick="approveBooking(${b.id})">Approve &amp; Confirm</button>
+        <button class="btn btn-clay btn-sm" onclick="rejectBooking(${b.id})">Reject</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function approveBooking(id){
+  const b = confirmedBookings.find(x=>x.id===id);
+  if(b){
+    b.status = 'Confirmed';
+    saveData('sp_bookings', confirmedBookings);
+    if(rtdb) rtdb.ref('bookings/' + id + '/status').set('Confirmed');
+    renderAdminVerifications();
+    toast(`Booking Approved! Advance payment confirmed.`);
+  }
+}
+
+function rejectBooking(id){
+  if(confirm('Is booking request ko reject karna chahte hain?')){
+    confirmedBookings = confirmedBookings.filter(x=>x.id!==id);
+    saveData('sp_bookings', confirmedBookings);
+    if(rtdb) rtdb.ref('bookings/' + id).remove();
+    renderAdminVerifications();
+    toast(`Booking request rejected`);
+  }
+}
+
 function saveAdminSalonInfo(){
   const n = document.getElementById('edit-s-name').value;
   const l = document.getElementById('edit-s-loc').value;
@@ -1353,6 +1476,7 @@ function saveAdminService(){
     });
   }
 
+  saveData('sp_services', services);
   closeSvcModal();
   renderAdminServices();
   renderHome();
@@ -1362,6 +1486,7 @@ function saveAdminService(){
 function delSvc(id){
   if(confirm('Is style/service ko delete karein?')){
     services = services.filter(x=>x.id!==id);
+    saveData('sp_services', services);
     renderAdminServices();
     renderHome();
     toast('Style deleted');
@@ -1433,6 +1558,7 @@ function saveAdminStaff(){
     toast('Naya Barber aur number add ho gaya!');
   }
 
+  saveData('sp_staff', staff);
   closeStaffModal();
   renderAdminStaff();
 }
@@ -1440,6 +1566,7 @@ function saveAdminStaff(){
 function delStaff(id){
   if(confirm('Is barber ko remove karna chahte hain?')){
     staff = staff.filter(x=>x.id!==id);
+    saveData('sp_staff', staff);
     renderAdminStaff();
     toast('Barber removed');
   }
@@ -1457,12 +1584,25 @@ function syncAdminQueue(){
 }
 function setQStatus(tok, st){
   const q = queue.find(x=>x.token===tok);
-  if(q){ q.status = st; syncAdminQueue(); }
+  if(q){ q.status = st; saveData('sp_queue', queue); syncAdminQueue(); }
 }
 function adminCallNext(){
   const w = queue.find(x=>x.status==='WAITING');
-  if(w){ w.status = 'IN SERVICE'; syncAdminQueue(); toast(w.token + ' in service'); }
+  if(w){ w.status = 'IN SERVICE'; saveData('sp_queue', queue); syncAdminQueue(); toast(w.token + ' in service'); }
   else toast('Queue khali hai');
+}
+
+/* Real-time sync listener */
+if (rtdb) {
+  rtdb.ref('bookings').on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      confirmedBookings = Object.values(data);
+      saveData('sp_bookings', confirmedBookings);
+      if (document.getElementById('view-admin').classList.contains('active')) renderAdminVerifications();
+      if (document.getElementById('view-customer').classList.contains('active')) renderProfile();
+    }
+  });
 }
 
 /* Initialize defaults */
