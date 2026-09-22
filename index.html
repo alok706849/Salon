@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-<!-- Stable Firebase Scripts with Real Authentication -->
+<!-- Stable Firebase Scripts -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -461,7 +461,7 @@
       <!-- Barber & Admin Passcode Area (No Hints Anywhere) -->
       <div id="pwd-wrap" style="display:none;">
         <div class="div-line">authorized passcode required</div>
-        <input type="text" class="input-dark" id="in-name" placeholder="Your Name" value="Staff Member">
+        <input type="text" class="input-dark" id="in-name" placeholder="Your Name" value="Arjun Rao">
         <input type="password" class="input-dark" id="in-pass" placeholder="Enter Secret Passcode">
         <button class="btn btn-primary btn-block" onclick="loginDirect()">Login to Portal</button>
       </div>
@@ -569,7 +569,7 @@
     </div>
   </div>
 
-  <!-- ================= BARBER / STAFF VIEW ================= -->
+  <!-- ================= BARBER / STAFF VIEW (WITH LIVE APPROVALS) ================= -->
   <div class="view" id="view-staff">
     <div class="top-bar">
       <h1 id="barber-greet">Hey, Barber</h1>
@@ -577,8 +577,8 @@
     </div>
     <div class="content">
       <div class="stat-grid">
-        <div class="stat-card"><div class="v">9</div><div class="l">Today's clients</div></div>
-        <div class="stat-card"><div class="v">₹1,860</div><div class="l">My earnings</div></div>
+        <div class="stat-card"><div class="v" id="staff-clients-count">0</div><div class="l">My Clients</div></div>
+        <div class="stat-card"><div class="v" id="staff-earnings-count">₹0</div><div class="l">My Earnings</div></div>
       </div>
 
       <div class="section-head"><h2>My Status</h2></div>
@@ -588,10 +588,16 @@
         <div class="pick-chip" onclick="setStaffAvail('OFFLINE',this)">Offline</div>
       </div>
 
-      <div class="section-head"><h2>Queue — Serve Next</h2></div>
+      <!-- NEW: BOOKING APPROVAL SECTION INSIDE BARBER PORTAL -->
+      <div class="section-head">
+        <h2>Pending Booking Requests (Approve / Reject)</h2>
+      </div>
+      <div id="staff-verify-bookings"></div>
+
+      <div class="section-head" style="margin-top:18px;"><h2>Queue — Serve Next</h2></div>
       <div id="staff-queue-panel"></div>
 
-      <div class="section-head" style="margin-top:18px;"><h2>Upcoming Bookings</h2></div>
+      <div class="section-head" style="margin-top:18px;"><h2>My Confirmed Appointments</h2></div>
       <div id="staff-schedule"></div>
     </div>
   </div>
@@ -617,12 +623,6 @@
         </div>
         <button class="btn btn-pine btn-block" onclick="saveAdminUpiInfo()">Save UPI QR Settings</button>
       </div>
-
-      <!-- BOOKINGS PENDING PAYMENT VERIFICATION -->
-      <div class="section-head" style="margin-top:16px;">
-        <h2>Verify 10% Advance Bookings</h2>
-      </div>
-      <div id="admin-verify-bookings"></div>
 
       <div class="section-head" style="margin-top:18px;"><h2>Edit Salon Info</h2></div>
       <div class="card">
@@ -848,7 +848,7 @@ let upiConfig = loadData('sp_upi', {
 });
 
 let confirmedBookings = loadData('sp_bookings', [
-  {id:101, customer:'Deepak', service:'Classic Fade Haircut', staff:'Arjun Rao', when:'Tomorrow · 11:30 AM', total:399, advancePaid:40, remaining:359, utr:'123456789012', status:'Confirmed'}
+  {id:101, customer:'Rohan Iyer', service:'Classic Fade Haircut', staff:'Arjun Rao', when:'Tomorrow · 11:30 AM', total:399, advancePaid:40, remaining:359, utr:'123456789012', status:'Confirmed'}
 ]);
 
 let nextTokenNum = 25;
@@ -887,14 +887,14 @@ function setRole(role){
   const googleBtn = document.getElementById('btn-google-login');
 
   if(role==='customer'){
-    info.textContent = 'Customer login: Please click Login with Google to proceed.';
+    info.textContent = 'Customer login: Real Google account se login karein.';
     googleBtn.style.display = 'flex';
     pwdWrap.style.display = 'none';
   } else if(role==='staff'){
     info.textContent = 'Barber/Staff Portal: Enter authorized passcode to continue.';
     googleBtn.style.display = 'none';
     pwdWrap.style.display = 'block';
-    document.getElementById('in-name').value = 'Staff Member';
+    document.getElementById('in-name').value = 'Arjun Rao';
     document.getElementById('in-pass').value = '';
   } else {
     info.textContent = 'Owner Admin Portal: Enter master passcode to access controls.';
@@ -931,7 +931,7 @@ function loginGoogle(){
 }
 
 function loginDirect(){
-  const name = document.getElementById('in-name').value.trim() || 'User';
+  const name = document.getElementById('in-name').value.trim() || 'Staff';
   const pwd = document.getElementById('in-pass').value.trim();
 
   if(currentRoleTab === 'admin'){
@@ -1000,7 +1000,6 @@ function navigateMode(mode){
     renderAdminServices();
     renderAdminStaff();
     syncAdminQueue();
-    renderAdminVerifications();
   } else if(mode === 'staff'){
     document.getElementById('barber-greet').textContent = 'Hey, ' + session.name;
     renderStaffPanel();
@@ -1221,7 +1220,7 @@ function nextStep(){
       id: Date.now(),
       customer: session ? session.name : 'Customer',
       service: myBooking.service.name,
-      staff: myBooking.staff ? myBooking.staff.name : 'Any Stylist',
+      staff: myBooking.staff ? myBooking.staff.name : (staff[0] ? staff[0].name : 'General'),
       when: `${myBooking.date} · ${myBooking.slot}`,
       total: total,
       advancePaid: advance,
@@ -1237,7 +1236,7 @@ function nextStep(){
       rtdb.ref('bookings/' + newBooking.id).set(newBooking);
     }
 
-    toast(`Booking Request Sent! Admin verify karke approve karega.`);
+    toast(`Booking Request Sent! Barber verify karke approve karega.`);
     step = 1;
     myBooking = {service:null, staff:null, date:null, slot:null};
     setTimeout(()=>goCustSub('cust-profile'), 600);
@@ -1253,7 +1252,7 @@ function renderProfile(){
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
         <div>
           <div style="font-weight:700;font-size:14px;">${b.service}</div>
-          <div style="font-size:12px;color:#77716A;margin-top:2px;">${b.staff} · ${b.when}</div>
+          <div style="font-size:12px;color:#77716A;margin-top:2px;">Stylist: <b>${b.staff}</b> · ${b.when}</div>
           <div style="font-size:11px;color:#8B857D;margin-top:2px;">UTR: ${b.utr}</div>
         </div>
         <span class="tag ${b.status==='Confirmed'?'service':'waiting'}">${b.status}</span>
@@ -1319,14 +1318,16 @@ function cancelToken(){
   renderQueue();
 }
 
-/* ------------------ STAFF DASHBOARD ------------------ */
+/* ------------------ STAFF / BARBER DASHBOARD WITH APPROVAL ------------------ */
 function setStaffAvail(status, el){
   document.querySelectorAll('#view-staff .pick-chip').forEach(c=>c.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('staff-avail-lbl').textContent = status;
   toast('Availability: ' + status);
 }
+
 function renderStaffPanel(){
+  // Queue panel
   document.getElementById('staff-queue-panel').innerHTML = queue.filter(q=>q.status!=='COMPLETED').map(q=>`
     <div class="q-row">
       <div class="q-badge ${q.status==='IN SERVICE'?'serving':''}">${q.token}</div>
@@ -1335,11 +1336,89 @@ function renderStaffPanel(){
       `<button class="btn btn-sm btn-primary" onclick="barberCall('${q.token}')">Call</button>`}
     </div>`).join('') || `<div class="empty">No queue active.</div>`;
 
-  document.getElementById('staff-schedule').innerHTML = `
-    <div class="q-row"><div class="q-badge">12</div><div class="q-info"><div class="n">Royal Beard Shape</div><div class="s">Sameer · 12:30 PM</div></div></div>
-    <div class="q-row"><div class="q-badge">02</div><div class="q-info"><div class="n">Classic Fade Cut</div><div class="s">Nikhil · 02:00 PM</div></div></div>
-  `;
+  const currentBarberName = session ? session.name : 'Arjun Rao';
+  
+  // 1. Pending Bookings verification for this Barber
+  const pendingRequests = confirmedBookings.filter(b => 
+    b.status === 'Pending Verification' && 
+    (b.staff.toLowerCase().includes(currentBarberName.toLowerCase()) || 
+     currentBarberName.toLowerCase().includes(b.staff.toLowerCase()) ||
+     b.staff === 'Any Stylist' || b.staff === 'General')
+  );
+
+  const verifyWrap = document.getElementById('staff-verify-bookings');
+  if(!pendingRequests.length){
+    verifyWrap.innerHTML = `<div class="card" style="font-size:12.5px;color:#8B857D;text-align:center;">Koi pending booking request nahi hai.</div>`;
+  } else {
+    verifyWrap.innerHTML = pendingRequests.map(b => `
+      <div class="card" style="border-left:4px solid var(--brass);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div>
+            <div style="font-weight:700;font-size:14px;">${b.customer} — ${b.service}</div>
+            <div style="font-size:12px;color:#77716A;margin-top:2px;">Slot: <b>${b.when}</b></div>
+            <div style="font-size:12px;color:var(--clay);font-weight:700;margin-top:4px;">UTR Ref: ${b.utr}</div>
+            <div style="font-size:11.5px;color:#35473D;margin-top:2px;">10% Advance: <b>${fmtINR(b.advancePaid)}</b> (Remaining: ₹${b.remaining})</div>
+          </div>
+        </div>
+        <div class="cta-row" style="margin-top:10px;">
+          <button class="btn btn-pine btn-sm" onclick="barberApproveBooking(${b.id})">Approve &amp; Confirm</button>
+          <button class="btn btn-clay btn-sm" onclick="barberRejectBooking(${b.id})">Reject</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // 2. Confirmed Bookings for this Barber
+  const myConfirmedClients = confirmedBookings.filter(b => 
+    b.status === 'Confirmed' && 
+    (b.staff.toLowerCase().includes(currentBarberName.toLowerCase()) || 
+     currentBarberName.toLowerCase().includes(b.staff.toLowerCase()) ||
+     b.staff === 'Any Stylist' || b.staff === 'General')
+  );
+
+  document.getElementById('staff-clients-count').textContent = myConfirmedClients.length;
+  const myEarnings = myConfirmedClients.reduce((sum, b) => sum + (b.total || 0), 0);
+  document.getElementById('staff-earnings-count').textContent = fmtINR(myEarnings);
+
+  const schedEl = document.getElementById('staff-schedule');
+  if(!myConfirmedClients.length){
+    schedEl.innerHTML = `<div class="card" style="font-size:12.5px;color:#8B857D;text-align:center;">Abhi is barber ke liye koi confirmed booking nahi hai.</div>`;
+    return;
+  }
+
+  schedEl.innerHTML = myConfirmedClients.map(b => `
+    <div class="q-row">
+      <div class="q-badge">✂</div>
+      <div class="q-info">
+        <div class="n">${b.customer} — ${b.service}</div>
+        <div class="s">${b.when} · Advance Paid: ${fmtINR(b.advancePaid)}</div>
+      </div>
+      <span class="tag service">Confirmed</span>
+    </div>
+  `).join('');
 }
+
+function barberApproveBooking(id){
+  const b = confirmedBookings.find(x=>x.id===id);
+  if(b){
+    b.status = 'Confirmed';
+    saveData('sp_bookings', confirmedBookings);
+    if(rtdb) rtdb.ref('bookings/' + id + '/status').set('Confirmed');
+    renderStaffPanel();
+    toast(`Booking Approved! Aapke confirmed schedule mein jud gayi.`);
+  }
+}
+
+function barberRejectBooking(id){
+  if(confirm('Is booking request ko reject karna chahte hain?')){
+    confirmedBookings = confirmedBookings.filter(x=>x.id!==id);
+    saveData('sp_bookings', confirmedBookings);
+    if(rtdb) rtdb.ref('bookings/' + id).remove();
+    renderStaffPanel();
+    toast(`Booking request rejected.`);
+  }
+}
+
 function barberCall(tok){
   const q = queue.find(x=>x.token===tok);
   if(q) q.status = 'IN SERVICE';
@@ -1361,54 +1440,6 @@ function saveAdminUpiInfo(){
   upiConfig.name = document.getElementById('cfg-upi-name').value.trim() || 'SalonPro';
   saveData('sp_upi', upiConfig);
   toast('Salon UPI QR settings saved!');
-}
-
-function renderAdminVerifications(){
-  const wrap = document.getElementById('admin-verify-bookings');
-  const pending = confirmedBookings.filter(b=>b.status==='Pending Verification');
-  
-  if(!pending.length){
-    wrap.innerHTML = `<div class="card" style="font-size:12.5px;color:#8B857D;text-align:center;">Koi pending UTR payment verification nahi hai.</div>`;
-    return;
-  }
-
-  wrap.innerHTML = pending.map(b=>`
-    <div class="card" style="border-left:4px solid var(--brass);">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-        <div>
-          <div style="font-weight:700;font-size:14px;">${b.customer} — ${b.service}</div>
-          <div style="font-size:12px;color:#77716A;margin-top:2px;">Slot: ${b.when}</div>
-          <div style="font-size:12px;color:var(--clay);font-weight:700;margin-top:4px;">UTR Ref: ${b.utr}</div>
-          <div style="font-size:11.5px;color:#35473D;margin-top:2px;">10% Advance Amount: <b>${fmtINR(b.advancePaid)}</b></div>
-        </div>
-      </div>
-      <div class="cta-row" style="margin-top:10px;">
-        <button class="btn btn-pine btn-sm" onclick="approveBooking(${b.id})">Approve &amp; Confirm</button>
-        <button class="btn btn-clay btn-sm" onclick="rejectBooking(${b.id})">Reject</button>
-      </div>
-    </div>
-  `).join('');
-}
-
-function approveBooking(id){
-  const b = confirmedBookings.find(x=>x.id===id);
-  if(b){
-    b.status = 'Confirmed';
-    saveData('sp_bookings', confirmedBookings);
-    if(rtdb) rtdb.ref('bookings/' + id + '/status').set('Confirmed');
-    renderAdminVerifications();
-    toast(`Booking Approved! Advance payment confirmed.`);
-  }
-}
-
-function rejectBooking(id){
-  if(confirm('Is booking request ko reject karna chahte hain?')){
-    confirmedBookings = confirmedBookings.filter(x=>x.id!==id);
-    saveData('sp_bookings', confirmedBookings);
-    if(rtdb) rtdb.ref('bookings/' + id).remove();
-    renderAdminVerifications();
-    toast(`Booking request rejected`);
-  }
 }
 
 function saveAdminSalonInfo(){
@@ -1645,8 +1676,8 @@ if (rtdb) {
     if (data) {
       confirmedBookings = Object.values(data);
       saveData('sp_bookings', confirmedBookings);
-      if (document.getElementById('view-admin').classList.contains('active')) renderAdminVerifications();
       if (document.getElementById('view-customer').classList.contains('active')) renderProfile();
+      if (document.getElementById('view-staff').classList.contains('active')) renderStaffPanel();
     }
   });
 }
